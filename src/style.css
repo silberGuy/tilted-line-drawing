@@ -1,0 +1,12 @@
+:root {
+  color-scheme: light;
+  font: 16px/1.4 system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+}
+
+h2 {
+  margin: 0 0 8px;
+}
