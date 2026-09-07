@@ -3,12 +3,14 @@ import { computed, ref } from 'vue'
 import MotifEditor from './components/MotifEditor.vue'
 import SpineEditor from './components/SpineEditor.vue'
 import RenderCanvas from './components/RenderCanvas.vue'
+import GradientEditor from './components/GradientEditor.vue'
 import { useStamps } from './composables/useStamps'
 import { MOTIF_BOARD_WIDTH, MOTIF_BASELINE_Y } from './composables/useMotif'
 import { DEFAULT_STAMP_SPACING } from './composables/useSpine'
 
 const motifEditorRef = ref<InstanceType<typeof MotifEditor> | null>(null)
 const spineEditorRef = ref<InstanceType<typeof SpineEditor> | null>(null)
+const gradientEditorRef = ref<InstanceType<typeof GradientEditor> | null>(null)
 
 const stampSpacing = ref(DEFAULT_STAMP_SPACING)
 const stampWidth = ref(0.5)
@@ -16,6 +18,7 @@ const stampWidth = ref(0.5)
 const { stamps } = useStamps(
   () => spineEditorRef.value?.stampSamples ?? [],
   () => ({ x: MOTIF_BOARD_WIDTH / 2, y: MOTIF_BASELINE_Y }),
+  (t) => gradientEditorRef.value?.colorAt(t) ?? '#000000',
 )
 
 const motifPathD = computed(() => motifEditorRef.value?.pathD ?? '')
@@ -41,6 +44,7 @@ const motifPathD = computed(() => motifEditorRef.value?.pathD ?? '')
           <input v-model.number="stampWidth" type="range" min="0.1" max="5" step="0.1" />
           <span>{{ stampWidth }}px</span>
         </label>
+        <GradientEditor ref="gradientEditorRef" />
       </div>
       <RenderCanvas :motif-path-d="motifPathD" :stamps="stamps" :stroke-width="stampWidth" />
     </div>

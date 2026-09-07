@@ -19,6 +19,7 @@ defineProps<{
         :d="motifPathD"
         :transform="stamp.transform"
         :stroke-width="strokeWidth"
+        :color="stamp.color"
       />
     </svg>
   </div>

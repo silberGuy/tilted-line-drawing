@@ -90,7 +90,7 @@ export function sampleAtArcLengthIntervals(densePoints: Point[], spacing: number
     const tangent = { x: dx / len, y: dy / len }
     const normal = { x: -tangent.y, y: tangent.x }
 
-    result.push({ x, y, tangent, normal })
+    result.push({ x, y, tangent, normal, t: totalLength > 0 ? target / totalLength : 0 })
   }
 
   return result
