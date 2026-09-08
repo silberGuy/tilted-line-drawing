@@ -7,12 +7,17 @@ defineProps<{
   motifPathD: string
   stamps: Stamp[]
   strokeWidth: number
+  backgroundColor: string
 }>()
 </script>
 
 <template>
   <div class="render-canvas">
-    <svg :viewBox="`0 0 ${SPINE_CANVAS_WIDTH} ${SPINE_CANVAS_HEIGHT}`" class="canvas">
+    <svg
+      :viewBox="`0 0 ${SPINE_CANVAS_WIDTH} ${SPINE_CANVAS_HEIGHT}`"
+      class="canvas"
+      :style="{ backgroundColor }"
+    >
       <MotifStamp
         v-for="(stamp, i) in stamps"
         :key="i"
@@ -35,7 +40,6 @@ defineProps<{
 .canvas {
   width: 100%;
   height: 100%;
-  background: #fff;
   border: 1px solid #ddd;
 }
 </style>

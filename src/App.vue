@@ -14,6 +14,7 @@ const gradientEditorRef = ref<InstanceType<typeof GradientEditor> | null>(null)
 
 const stampSpacing = ref(DEFAULT_STAMP_SPACING)
 const stampWidth = ref(0.5)
+const backgroundColor = ref('#ffffff')
 
 const { stamps } = useStamps(
   () => spineEditorRef.value?.stampSamples ?? [],
@@ -45,8 +46,17 @@ const motifPathD = computed(() => motifEditorRef.value?.pathD ?? '')
           <span>{{ stampWidth }}px</span>
         </label>
         <GradientEditor ref="gradientEditorRef" />
+        <label>
+          Background
+          <input v-model="backgroundColor" type="color" />
+        </label>
       </div>
-      <RenderCanvas :motif-path-d="motifPathD" :stamps="stamps" :stroke-width="stampWidth" />
+      <RenderCanvas
+        :motif-path-d="motifPathD"
+        :stamps="stamps"
+        :stroke-width="stampWidth"
+        :background-color="backgroundColor"
+      />
     </div>
   </main>
 </template>
