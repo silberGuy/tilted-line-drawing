@@ -13,13 +13,23 @@ defineProps<{
 
 const svgRef = ref<SVGSVGElement | null>(null)
 
-const EXPORT_SCALE = 3
+const EXPORT_SCALE = 4
 
 async function downloadPng(filename = 'drawing.png') {
   const svg = svgRef.value
   if (!svg) return
 
-  const svgString = new XMLSerializer().serializeToString(svg)
+  const width = SPINE_CANVAS_WIDTH * EXPORT_SCALE
+  const height = SPINE_CANVAS_HEIGHT * EXPORT_SCALE
+
+  // Rasterizing an <img> upscales whatever bitmap the browser generates at the
+  // SVG's own width/height - so the clone's intrinsic size must already be the
+  // target export resolution, or the result comes out blurry.
+  const clone = svg.cloneNode(true) as SVGSVGElement
+  clone.setAttribute('width', String(width))
+  clone.setAttribute('height', String(height))
+
+  const svgString = new XMLSerializer().serializeToString(clone)
   const svgUrl = URL.createObjectURL(new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' }))
 
   const image = new Image()
@@ -30,10 +40,10 @@ async function downloadPng(filename = 'drawing.png') {
   })
 
   const canvas = document.createElement('canvas')
-  canvas.width = SPINE_CANVAS_WIDTH * EXPORT_SCALE
-  canvas.height = SPINE_CANVAS_HEIGHT * EXPORT_SCALE
+  canvas.width = width
+  canvas.height = height
   const ctx = canvas.getContext('2d')!
-  ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
+  ctx.drawImage(image, 0, 0, width, height)
   URL.revokeObjectURL(svgUrl)
 
   canvas.toBlob((blob) => {
