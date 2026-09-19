@@ -11,6 +11,7 @@ import { DEFAULT_STAMP_SPACING } from './composables/useSpine'
 const motifEditorRef = ref<InstanceType<typeof MotifEditor> | null>(null)
 const spineEditorRef = ref<InstanceType<typeof SpineEditor> | null>(null)
 const gradientEditorRef = ref<InstanceType<typeof GradientEditor> | null>(null)
+const renderCanvasRef = ref<InstanceType<typeof RenderCanvas> | null>(null)
 
 const stampSpacing = ref(DEFAULT_STAMP_SPACING)
 const stampWidth = ref(0.5)
@@ -50,8 +51,10 @@ const motifPathD = computed(() => motifEditorRef.value?.pathD ?? '')
           Background
           <input v-model="backgroundColor" type="color" />
         </label>
+        <button type="button" @click="renderCanvasRef?.downloadPng()">Download image</button>
       </div>
       <RenderCanvas
+        ref="renderCanvasRef"
         :motif-path-d="motifPathD"
         :stamps="stamps"
         :stroke-width="stampWidth"
@@ -92,6 +95,7 @@ const motifPathD = computed(() => motifEditorRef.value?.pathD ?? '')
 }
 .controls {
   display: flex;
+  align-items: flex-end;
   gap: 1.5rem;
 }
 .controls label {
