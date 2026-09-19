@@ -2,8 +2,8 @@ import { computed } from 'vue'
 import type { SampledPoint } from '../types/domain'
 
 export interface Stamp {
-  /** SVG `matrix(a,b,c,d,e,f)` mapping motif board-local coordinates to world coordinates. */
-  transform: string
+  /** [a, b, c, d, e, f] mapping motif board-local coordinates to world coordinates - same layout as CanvasRenderingContext2D.setTransform. */
+  matrix: [number, number, number, number, number, number]
   color: string
 }
 
@@ -26,7 +26,7 @@ export function useStamps(
       const e = sample.x - cx * normal.x - cy * tangent.x
       const f = sample.y - cx * normal.y - cy * tangent.y
       return {
-        transform: `matrix(${normal.x} ${normal.y} ${tangent.x} ${tangent.y} ${e} ${f})`,
+        matrix: [normal.x, normal.y, tangent.x, tangent.y, e, f],
         color: colorAt(sample.t),
       }
     })

@@ -1,51 +1,58 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watchEffect } from 'vue'
 import { SPINE_CANVAS_WIDTH, SPINE_CANVAS_HEIGHT } from '../composables/useSpine'
 import type { Stamp } from '../composables/useStamps'
-import MotifStamp from './MotifStamp.vue'
 
-defineProps<{
+const props = defineProps<{
   motifPathD: string
   stamps: Stamp[]
   strokeWidth: number
   backgroundColor: string
 }>()
 
-const svgRef = ref<SVGSVGElement | null>(null)
+const canvasRef = ref<HTMLCanvasElement | null>(null)
 
-const EXPORT_SCALE = 4
+// The canvas's backing bitmap is rendered at this multiple of the model's
+// coordinate space, so both the on-screen view and the downloaded PNG - which
+// reads pixels straight off this same canvas - are crisp rather than upscaled.
+const RESOLUTION_SCALE = 4
+
+function draw() {
+  const canvas = canvasRef.value
+  const ctx = canvas?.getContext('2d')
+  if (!canvas || !ctx) return
+
+  canvas.width = SPINE_CANVAS_WIDTH * RESOLUTION_SCALE
+  canvas.height = SPINE_CANVAS_HEIGHT * RESOLUTION_SCALE
+
+  ctx.setTransform(RESOLUTION_SCALE, 0, 0, RESOLUTION_SCALE, 0, 0)
+  ctx.fillStyle = props.backgroundColor
+  ctx.fillRect(0, 0, SPINE_CANVAS_WIDTH, SPINE_CANVAS_HEIGHT)
+
+  if (!props.motifPathD) return
+  const motifPath = new Path2D(props.motifPathD)
+  ctx.lineWidth = props.strokeWidth
+
+  for (const stamp of props.stamps) {
+    const [a, b, c, d, e, f] = stamp.matrix
+    ctx.setTransform(
+      RESOLUTION_SCALE * a,
+      RESOLUTION_SCALE * b,
+      RESOLUTION_SCALE * c,
+      RESOLUTION_SCALE * d,
+      RESOLUTION_SCALE * e,
+      RESOLUTION_SCALE * f,
+    )
+    ctx.strokeStyle = stamp.color
+    ctx.stroke(motifPath)
+  }
+}
+
+watchEffect(draw)
 
 async function downloadPng(filename = 'drawing.png') {
-  const svg = svgRef.value
-  if (!svg) return
-
-  const width = SPINE_CANVAS_WIDTH * EXPORT_SCALE
-  const height = SPINE_CANVAS_HEIGHT * EXPORT_SCALE
-
-  // Rasterizing an <img> upscales whatever bitmap the browser generates at the
-  // SVG's own width/height - so the clone's intrinsic size must already be the
-  // target export resolution, or the result comes out blurry.
-  const clone = svg.cloneNode(true) as SVGSVGElement
-  clone.setAttribute('width', String(width))
-  clone.setAttribute('height', String(height))
-
-  const svgString = new XMLSerializer().serializeToString(clone)
-  const svgUrl = URL.createObjectURL(new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' }))
-
-  const image = new Image()
-  await new Promise<void>((resolve, reject) => {
-    image.onload = () => resolve()
-    image.onerror = reject
-    image.src = svgUrl
-  })
-
-  const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
-  const ctx = canvas.getContext('2d')!
-  ctx.drawImage(image, 0, 0, width, height)
-  URL.revokeObjectURL(svgUrl)
-
+  const canvas = canvasRef.value
+  if (!canvas) return
   canvas.toBlob((blob) => {
     if (!blob) return
     const link = document.createElement('a')
@@ -61,23 +68,11 @@ defineExpose({ downloadPng })
 
 <template>
   <div class="render-canvas">
-    <svg
-      ref="svgRef"
-      :width="SPINE_CANVAS_WIDTH"
-      :height="SPINE_CANVAS_HEIGHT"
-      :viewBox="`0 0 ${SPINE_CANVAS_WIDTH} ${SPINE_CANVAS_HEIGHT}`"
+    <canvas
+      ref="canvasRef"
       class="canvas"
-    >
-      <rect :width="SPINE_CANVAS_WIDTH" :height="SPINE_CANVAS_HEIGHT" :fill="backgroundColor" />
-      <MotifStamp
-        v-for="(stamp, i) in stamps"
-        :key="i"
-        :d="motifPathD"
-        :transform="stamp.transform"
-        :stroke-width="strokeWidth"
-        :color="stamp.color"
-      />
-    </svg>
+      :style="{ aspectRatio: `${SPINE_CANVAS_WIDTH} / ${SPINE_CANVAS_HEIGHT}` }"
+    />
   </div>
 </template>
 
@@ -87,10 +82,13 @@ defineExpose({ downloadPng })
   height: 100%;
   flex: 1;
   min-height: 0;
+  display: flex;
 }
 .canvas {
-  width: 100%;
-  height: 100%;
+  display: block;
+  margin: auto;
+  max-width: 100%;
+  max-height: 100%;
   border: 1px solid #ddd;
 }
 </style>
