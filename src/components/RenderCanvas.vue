@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, watchEffect } from 'vue'
 import { SPINE_CANVAS_WIDTH, SPINE_CANVAS_HEIGHT } from '../composables/useSpine'
+import { heightsToPath } from '../composables/useBlend'
 import type { Stamp } from '../composables/useStamps'
 
 const props = defineProps<{
-  motifPathD: string
   stamps: Stamp[]
   strokeWidth: number
   backgroundColor: string
@@ -29,8 +29,6 @@ function draw() {
   ctx.fillStyle = props.backgroundColor
   ctx.fillRect(0, 0, SPINE_CANVAS_WIDTH, SPINE_CANVAS_HEIGHT)
 
-  if (!props.motifPathD) return
-  const motifPath = new Path2D(props.motifPathD)
   ctx.lineWidth = props.strokeWidth
 
   for (const stamp of props.stamps) {
@@ -44,7 +42,7 @@ function draw() {
       RESOLUTION_SCALE * f,
     )
     ctx.strokeStyle = stamp.color
-    ctx.stroke(motifPath)
+    ctx.stroke(heightsToPath(stamp.heights))
   }
 }
 

@@ -21,6 +21,10 @@ const { stamps } = useStamps(
   () => spineEditorRef.value?.stampSamples ?? [],
   () => ({ x: MOTIF_BOARD_WIDTH / 2, y: MOTIF_BASELINE_Y }),
   (t) => gradientEditorRef.value?.colorAt(t) ?? '#000000',
+  () => ({
+    anchorFractions: spineSlots.value.map((slot) => slot.position),
+    motifs: motifEditorRef.value?.motifs ?? [],
+  }),
 )
 
 const spineSlots = computed(() => {
@@ -32,8 +36,6 @@ const spineSlots = computed(() => {
     position: spine.anchorFractions[i] ?? 0,
   }))
 })
-
-const motifPathD = computed(() => motifEditorRef.value?.pathD ?? '')
 </script>
 
 <template>
@@ -65,7 +67,6 @@ const motifPathD = computed(() => motifEditorRef.value?.pathD ?? '')
       </div>
       <RenderCanvas
         ref="renderCanvasRef"
-        :motif-path-d="motifPathD"
         :stamps="stamps"
         :stroke-width="stampWidth"
         :background-color="backgroundColor"

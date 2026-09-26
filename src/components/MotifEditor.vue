@@ -11,7 +11,7 @@ const props = defineProps<{
 const {
   anchors,
   pathD,
-  defaultPathD,
+  motifs,
   selectedId,
   hasOwnMotif,
   addAnchor,
@@ -30,8 +30,7 @@ function onBackgroundClick(event: MouseEvent) {
   addAnchor(event.clientX - rect.left, event.clientY - rect.top)
 }
 
-// The render uses the Default Motif for every Stamp for now.
-defineExpose({ pathD: defaultPathD })
+defineExpose({ motifs })
 </script>
 
 <template>

@@ -61,8 +61,8 @@ export function useMotif(spineAnchorIds: () => number[]) {
 
   const anchors = computed(() => motifOf(selectedId.value))
   const pathD = computed(() => toPathOf(anchors.value))
-  /** The Default Motif's path - what the render uses for every Stamp for now. */
-  const defaultPathD = computed(() => toPathOf(defaultAnchors))
+  /** Every Spine anchor's Motif, in Spine order - what the render blends Stamps from. */
+  const motifs = computed(() => spineAnchorIds().map((id) => motifOf(id)))
 
   /** The list edits go to: the Default Motif for the top anchor, otherwise the selected
    *  anchor's own Motif, created as a copy of the Default Motif on first edit. */
@@ -113,7 +113,7 @@ export function useMotif(spineAnchorIds: () => number[]) {
   return {
     anchors,
     pathD,
-    defaultPathD,
+    motifs,
     selectedId,
     hasOwnMotif,
     addAnchor,
