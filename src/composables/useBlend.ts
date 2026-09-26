@@ -1,4 +1,5 @@
-import type { AnchorPoint } from '../types/domain'
+import type { AnchorPoint, Point } from '../types/domain'
+import type { Extensions } from './useExtension'
 import { sampleSpline } from './useSpline'
 import { MOTIF_BOARD_WIDTH } from './motifBoard'
 
@@ -60,12 +61,18 @@ export function heightsAt(
   return weight === 0 ? tables[i] : blendHeights(tables[i], next, weight)
 }
 
-export function heightsToPath(heights: number[]): Path2D {
+export function heightsToPoints(heights: number[]): Point[] {
+  return heights.map((y, k) => ({ x: (k * MOTIF_BOARD_WIDTH) / MOTIF_SAMPLE_COUNT, y }))
+}
+
+/** The Motif line as a path, with its extensions attached to either end. */
+export function heightsToPath(heights: number[], extensions?: Extensions): Path2D {
+  const points = [
+    ...(extensions ? [...extensions.start].reverse() : []),
+    ...heightsToPoints(heights),
+    ...(extensions?.end ?? []),
+  ]
   const path = new Path2D()
-  heights.forEach((y, k) => {
-    const x = (k * MOTIF_BOARD_WIDTH) / MOTIF_SAMPLE_COUNT
-    if (k === 0) path.moveTo(x, y)
-    else path.lineTo(x, y)
-  })
+  points.forEach((p, i) => (i === 0 ? path.moveTo(p.x, p.y) : path.lineTo(p.x, p.y)))
   return path
 }

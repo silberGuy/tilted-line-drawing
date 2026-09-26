@@ -42,7 +42,7 @@ function draw() {
       RESOLUTION_SCALE * f,
     )
     ctx.strokeStyle = stamp.color
-    ctx.stroke(heightsToPath(stamp.heights))
+    ctx.stroke(heightsToPath(stamp.heights, stamp.extensions))
   }
 }
 

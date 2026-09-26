@@ -22,7 +22,8 @@ function slotY(position: number) {
 }
 
 function onSlotClick(id: number, event: MouseEvent) {
-  emit(event.altKey ? 'copy' : 'select', id)
+  if (event.altKey) emit('copy', id)
+  else emit('select', id)
 }
 </script>
 

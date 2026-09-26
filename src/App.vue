@@ -80,7 +80,7 @@ const spineSlots = computed(() => {
 <style scoped>
 .app {
   display: grid;
-  grid-template-columns: 580px 1fr 1fr;
+  grid-template-columns: 700px 1fr 1fr;
   grid-template-rows: auto 1fr 1fr;
   grid-template-areas:
     'motif render render'

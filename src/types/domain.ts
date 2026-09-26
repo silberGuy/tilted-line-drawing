@@ -33,3 +33,8 @@ export interface TrackSlot {
   /** Fraction (0-1) of the Spine's total arc length at which this anchor sits. */
   position: number
 }
+
+export interface Point {
+  x: number
+  y: number
+}
