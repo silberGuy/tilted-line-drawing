@@ -23,13 +23,23 @@ const { stamps } = useStamps(
   (t) => gradientEditorRef.value?.colorAt(t) ?? '#000000',
 )
 
+const spineSlots = computed(() => {
+  const spine = spineEditorRef.value
+  if (!spine) return []
+  return spine.anchors.map((anchor, i) => ({
+    id: anchor.id,
+    isEdge: anchor.isEdge,
+    position: spine.anchorFractions[i] ?? 0,
+  }))
+})
+
 const motifPathD = computed(() => motifEditorRef.value?.pathD ?? '')
 </script>
 
 <template>
   <main class="app">
     <div class="motif-area">
-      <MotifEditor ref="motifEditorRef" />
+      <MotifEditor ref="motifEditorRef" :slots="spineSlots" />
     </div>
     <div class="spine-area">
       <SpineEditor ref="spineEditorRef" :stamp-spacing="stampSpacing" />
@@ -67,7 +77,7 @@ const motifPathD = computed(() => motifEditorRef.value?.pathD ?? '')
 <style scoped>
 .app {
   display: grid;
-  grid-template-columns: 560px 1fr 1fr;
+  grid-template-columns: 580px 1fr 1fr;
   grid-template-rows: auto 1fr 1fr;
   grid-template-areas:
     'motif render render'

@@ -6,7 +6,7 @@ const props = defineProps<{
   stampSpacing: number
 }>()
 
-const { anchors, pathD, stampSamples, addAnchor, moveAnchor, removeAnchor } = useSpine(
+const { anchors, pathD, anchorFractions, stampSamples, addAnchor, moveAnchor, removeAnchor } = useSpine(
   () => props.stampSpacing,
 )
 
@@ -23,7 +23,7 @@ function onBackgroundClick(event: MouseEvent) {
   addAnchor(event.clientX - rect.left - EDITOR_MARGIN, event.clientY - rect.top - EDITOR_MARGIN)
 }
 
-defineExpose({ stampSamples })
+defineExpose({ stampSamples, anchors, anchorFractions })
 </script>
 
 <template>

@@ -122,6 +122,17 @@ function cumulativeArcLengths(densePoints: Point[]): number[] {
   return lengths
 }
 
+/** Fraction (0-1) of the curve's total arc length at which each input point sits. */
+export function anchorArcFractions(densePoints: DenseSample[], anchorCount: number): number[] {
+  if (densePoints.length < 2 || anchorCount < 2) return []
+  const arcLengths = cumulativeArcLengths(densePoints)
+  const total = arcLengths[arcLengths.length - 1]
+  return Array.from({ length: anchorCount }, (_, i) => {
+    const index = Math.min(i * SAMPLES_PER_SEGMENT, arcLengths.length - 1)
+    return total > 0 ? arcLengths[index] / total : i / (anchorCount - 1)
+  })
+}
+
 /**
  * Samples the curve at a fixed arc-length interval, returning position, tangent,
  * and normal at each sample. The normal is always the same fixed side of the

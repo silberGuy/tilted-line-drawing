@@ -7,6 +7,11 @@ const props = withDefaults(
     draggable: boolean
     lockX?: boolean
     lockY?: boolean
+    /** Ringed to show it's the one being edited. */
+    selected?: boolean
+    /** Drawn as an outline instead of filled. */
+    hollow?: boolean
+    clickable?: boolean
     /** Offset added to convert a screen click into local SVG coordinates, for SVGs whose viewBox doesn't start at (0,0). */
     viewBoxOffsetX?: number
     viewBoxOffsetY?: number
@@ -49,7 +54,7 @@ function onPointerMove(event: PointerEvent) {
     :cx="x"
     :cy="y"
     r="6"
-    :class="['anchor', { edge: isEdge, disabled: !draggable }]"
+    :class="['anchor', { edge: isEdge, disabled: !draggable, selected, hollow, clickable }]"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
   />
@@ -67,5 +72,19 @@ function onPointerMove(event: PointerEvent) {
 }
 .anchor.disabled {
   cursor: default;
+}
+.anchor.clickable {
+  cursor: pointer;
+}
+.anchor.hollow {
+  fill: white;
+  stroke: #3b82f6;
+}
+.anchor.edge.hollow {
+  stroke: #f97316;
+}
+.anchor.selected {
+  stroke: #111;
+  stroke-width: 3;
 }
 </style>

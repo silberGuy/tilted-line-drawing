@@ -4,7 +4,10 @@
 
 - **Motif** — the shape constructed by the user in Phase 1 on a fixed-width horizontal board with a straight center line (the baseline). The user builds the Motif by adding **anchor points** onto the baseline and dragging each one up or down to bend the line; shift-clicking an anchor point deletes it. The line is a smooth curve (spline) running through all anchor points, not a straight-segment polyline. An anchor's horizontal position is fixed at creation (wherever it was placed) — dragging only ever changes its height, never its horizontal position. The board always has two **edge anchors**, one at each end, which cannot be removed (shift-click has no effect on them); in v1 they are also disabled for dragging, so they stay fixed at baseline height (0) — the Motif always starts and ends level. (Architecturally they are real anchors, not a special case, so they can be made draggable later without changing the model.) Not freehand-drawn, not parametric, not assembled from a fixed primitive palette.
 - **Spine** — the curve constructed by the user in Phase 2 across the full page/canvas, via freely-placed 2D anchor points (auto-smoothed into a curve), starting from a straight line between two edge anchors.
-- **Stamp** — one placed copy of the Motif along the Spine, rotated so it stays perpendicular to the Spine's local direction at that point.
+- **Stamp** — one placed copy of a Motif along the Spine, rotated so it stays perpendicular to the Spine's local direction at that point.
+- **Spine anchor / Motif anchor** — a point on the Spine, and a point on a Motif's baseline, respectively. "Anchor" alone is ambiguous; always qualify it.
+- **Motif track** — the straight vertical line beside the Motif editor with one **slot** per Spine anchor (orange at the two ends, blue between), spaced by the arc length between Spine anchors along the Spine and scaled to a fixed height. Clicking a slot selects that Spine anchor's Motif for editing.
+- **Default Motif** — the Motif belonging to the Spine's first anchor. Every other Spine anchor uses it, live, until that anchor gets a Motif of its own. A Motif belongs to its Spine anchor, not to a position along the Spine.
 
 ## Orientation rule
 
@@ -28,7 +31,7 @@ Motif and Spine are each editable after being drawn: redrawing the Motif live-up
 
 ## Scope
 
-A drawing consists of exactly one Motif and one Spine (v1). No multiple layered Motif+Spine pairs on the same canvas.
+A drawing consists of exactly one Spine and one Motif per Spine anchor (v1), the first anchor's being the Default Motif. No multiple layered Spines on the same canvas.
 
 ## Phases
 

@@ -1,6 +1,6 @@
 import { computed, reactive } from 'vue'
 import type { AnchorPoint } from '../types/domain'
-import { sampleAtArcLengthIntervals, sampleSplineDetailed, toPathD } from './useSpline'
+import { anchorArcFractions, sampleAtArcLengthIntervals, sampleSplineDetailed, toPathD } from './useSpline'
 
 export const SPINE_CANVAS_WIDTH = 400
 export const SPINE_CANVAS_HEIGHT = 300
@@ -17,6 +17,8 @@ export function useSpine(stampSpacing: () => number) {
   const denseSamples = computed(() => sampleSplineDetailed(anchors))
 
   const pathD = computed(() => toPathD(denseSamples.value))
+
+  const anchorFractions = computed(() => anchorArcFractions(denseSamples.value, anchors.length))
 
   const stampSamples = computed(() => sampleAtArcLengthIntervals(denseSamples.value, stampSpacing()))
 
@@ -54,6 +56,7 @@ export function useSpine(stampSpacing: () => number) {
     anchors,
     denseSamples,
     pathD,
+    anchorFractions,
     stampSamples,
     addAnchor,
     moveAnchor,

@@ -1,8 +1,28 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useMotif, MOTIF_BOARD_WIDTH, MOTIF_BOARD_HEIGHT, MOTIF_BASELINE_Y } from '../composables/useMotif'
 import AnchorPoint from './AnchorPoint.vue'
+import MotifTrack, { type TrackSlot } from './MotifTrack.vue'
 
-const { anchors, pathD, addAnchor, moveAnchor, removeAnchor } = useMotif()
+const props = defineProps<{
+  slots: TrackSlot[]
+}>()
+
+const {
+  anchors,
+  pathD,
+  defaultPathD,
+  selectedId,
+  hasOwnMotif,
+  addAnchor,
+  moveAnchor,
+  removeAnchor,
+  select,
+  copyFrom,
+  resetToDefault,
+} = useMotif(() => props.slots.map((slot) => slot.id))
+
+const ownIds = computed(() => props.slots.filter((slot) => hasOwnMotif(slot.id)).map((slot) => slot.id))
 
 function onBackgroundClick(event: MouseEvent) {
   const svg = event.currentTarget as SVGSVGElement
@@ -10,13 +30,21 @@ function onBackgroundClick(event: MouseEvent) {
   addAnchor(event.clientX - rect.left, event.clientY - rect.top)
 }
 
-defineExpose({ pathD })
+// The render uses the Default Motif for every Stamp for now.
+defineExpose({ pathD: defaultPathD })
 </script>
 
 <template>
   <div class="motif-editor">
     <h2>1. Build the Motif</h2>
-    <p class="hint">Click the board to add a point, drag a point up/down, shift-click to remove it.</p>
+    <p class="hint">
+      Click the board to add a point, drag a point up/down, shift-click to remove it. Click a dot on the
+      track to edit that spot's Motif (option-click one to copy its Motif into the selected one).
+    </p>
+    <button type="button" :disabled="selectedId === undefined || !hasOwnMotif(selectedId)" @click="resetToDefault">
+      Reset to default
+    </button>
+    <div class="editor-row">
     <svg
       :width="MOTIF_BOARD_WIDTH"
       :height="MOTIF_BOARD_HEIGHT"
@@ -45,10 +73,24 @@ defineExpose({ pathD })
         @click.stop
       />
     </svg>
+    <MotifTrack
+      :slots="slots"
+      :selected-id="selectedId"
+      :own-ids="ownIds"
+      @select="select"
+      @copy="copyFrom"
+    />
+    </div>
   </div>
 </template>
 
 <style scoped>
+.editor-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 0.5rem;
+}
 .board {
   background: #fafafa;
   border: 1px solid #ddd;
