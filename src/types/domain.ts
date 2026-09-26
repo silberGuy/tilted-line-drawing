@@ -25,3 +25,11 @@ export interface ColorStop {
   /** The first stop is permanent: it can't be shift-clicked away. */
   removable: boolean
 }
+
+/** A Spine anchor as shown on the Motif track. */
+export interface TrackSlot {
+  id: number
+  isEdge: boolean
+  /** Fraction (0-1) of the Spine's total arc length at which this anchor sits. */
+  position: number
+}

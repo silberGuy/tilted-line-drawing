@@ -1,6 +1,6 @@
 import { computed } from 'vue'
-import type { AnchorPoint, SampledPoint } from '../types/domain'
-import { heightsAt, sampleMotifHeights, smoothstep, type EasingFunction } from './useBlend'
+import type { SampledPoint } from '../types/domain'
+import { heightsAt, smoothstep, type EasingFunction } from './useBlend'
 
 export interface Stamp {
   /** [a, b, c, d, e, f] mapping motif board-local coordinates to world coordinates - same layout as CanvasRenderingContext2D.setTransform. */
@@ -17,26 +17,21 @@ export interface Stamp {
  * y-axis (anchor bump height) is mapped onto the Spine's tangent. Each Stamp's color
  * comes from sampling the gradient at the Stamp's fractional position along the Spine.
  *
- * Each Stamp's Motif is blended from the two Spine anchors' Motifs it sits between, weighted
- * by its eased progress along the Spine between them.
+ * Each Stamp's Motif is blended from the two nearest own Motifs around it, weighted by its
+ * eased progress along the Spine between them.
  */
 export function useStamps(
   spineSamples: () => SampledPoint[],
   boardCenter: () => { x: number; y: number },
   colorAt: (t: number) => string,
-  blend: () => { anchorFractions: number[]; motifs: AnchorPoint[][] },
-  ease: EasingFunction = smoothstep,
+  blend: () => { fractions: number[]; tables: number[][] },
+  ease: () => EasingFunction = () => smoothstep,
 ) {
   const stamps = computed<Stamp[]>(() => {
     const { x: cx, y: cy } = boardCenter()
-    const { anchorFractions, motifs } = blend()
-    // Spine anchors that follow the Default Motif share one list, so resample each list once.
-    const tableByMotif = new Map<AnchorPoint[], number[]>()
-    const tables = motifs.map((motif) => {
-      if (!tableByMotif.has(motif)) tableByMotif.set(motif, sampleMotifHeights(motif))
-      return tableByMotif.get(motif)!
-    })
+    const { fractions, tables } = blend()
     if (tables.length === 0) return []
+    const easing = ease()
 
     return spineSamples().map((sample) => {
       const { normal, tangent } = sample
@@ -44,7 +39,7 @@ export function useStamps(
       const f = sample.y - cx * normal.y - cy * tangent.y
       return {
         matrix: [normal.x, normal.y, tangent.x, tangent.y, e, f],
-        heights: heightsAt(sample.t, anchorFractions, tables, ease),
+        heights: heightsAt(sample.t, fractions, tables, easing),
         color: colorAt(sample.t),
       }
     })

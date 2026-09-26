@@ -1,13 +1,10 @@
 import { computed, reactive, ref, watch } from 'vue'
-import type { AnchorPoint } from '../types/domain'
+import type { AnchorPoint, TrackSlot } from '../types/domain'
 import { sampleSpline, toPathD } from './useSpline'
-import { SPINE_CANVAS_WIDTH, SPINE_CANVAS_HEIGHT } from './useSpine'
+import { MOTIF_BOARD_WIDTH, MOTIF_BOARD_HEIGHT, MOTIF_BASELINE_Y } from './motifBoard'
+import { heightAtX, heightsAt, sampleMotifHeights, smoothstep, type EasingFunction } from './useBlend'
 
-// Per the 1:1 scale rule (a Stamp is exactly as long as the Motif's baseline), the
-// board is sized so the Motif's length matches the rendered area's diagonal.
-export const MOTIF_BOARD_WIDTH = Math.hypot(SPINE_CANVAS_WIDTH, SPINE_CANVAS_HEIGHT)
-export const MOTIF_BOARD_HEIGHT = 200
-export const MOTIF_BASELINE_Y = MOTIF_BOARD_HEIGHT / 2
+export { MOTIF_BOARD_WIDTH, MOTIF_BOARD_HEIGHT, MOTIF_BASELINE_Y }
 
 let nextId = 1
 
@@ -20,56 +17,118 @@ function clone(anchors: AnchorPoint[]): AnchorPoint[] {
   return anchors.map((a) => ({ ...a }))
 }
 
+interface Stop {
+  fraction: number
+  anchors: AnchorPoint[]
+}
+
 /**
- * The Default Motif belongs to the Spine's first anchor; every other Spine anchor follows
- * it until it gets a Motif of its own (on first edit, or by copying another anchor's).
- * The selected Spine anchor is the one whose Motif the editor shows and edits.
+ * A Spine anchor either has an own Motif (the top anchor always does; the others once they've
+ * been edited or copied into) or inherits one: the blend of the nearest own Motifs before and
+ * after it, or the top Motif's copy when none comes after. The selected Spine anchor is the one
+ * whose Motif the editor shows and edits.
  */
-export function useMotif(spineAnchorIds: () => number[]) {
-  const defaultAnchors = reactive<AnchorPoint[]>([
+export function useMotif(
+  spineSlots: () => TrackSlot[],
+  ease: () => EasingFunction = () => smoothstep,
+) {
+  const topAnchors = reactive<AnchorPoint[]>([
     { id: nextId++, x: 0, y: MOTIF_BASELINE_Y, isEdge: true },
     { id: nextId++, x: MOTIF_BOARD_WIDTH, y: MOTIF_BASELINE_Y, isEdge: true },
   ])
   const ownAnchors = reactive(new Map<number, AnchorPoint[]>())
   const requestedId = ref<number | null>(null)
 
-  const topId = computed(() => spineAnchorIds()[0])
+  const slotIds = computed(() => spineSlots().map((slot) => slot.id))
+  const topId = computed(() => slotIds.value[0])
   // Falls back to the top anchor when nothing is picked yet or the picked anchor was deleted.
   const selectedId = computed(() => {
-    const ids = spineAnchorIds()
+    const ids = slotIds.value
     const requested = requestedId.value
     return requested !== null && ids.includes(requested) ? requested : ids[0]
   })
   const isTopSelected = computed(() => selectedId.value === topId.value)
 
-  watch(
-    () => spineAnchorIds(),
-    (ids) => {
-      for (const id of [...ownAnchors.keys()]) {
-        if (!ids.includes(id)) ownAnchors.delete(id)
+  watch(slotIds, (ids) => {
+    for (const id of [...ownAnchors.keys()]) {
+      if (!ids.includes(id)) ownAnchors.delete(id)
+    }
+  })
+
+  /** The own Motifs along the Spine. Past the last one, Stamps blend toward the top Motif,
+   *  finishing at the end of the Spine - so a closing stop is added when needed. */
+  const stops = computed<Stop[]>(() => {
+    const slots = spineSlots()
+    if (slots.length === 0) return []
+    const result: Stop[] = []
+    slots.forEach((slot, i) => {
+      const own = i === 0 ? topAnchors : ownAnchors.get(slot.id)
+      if (own) result.push({ fraction: slot.position, anchors: own })
+    })
+    if (result[result.length - 1].fraction < 1) result.push({ fraction: 1, anchors: topAnchors })
+    return result
+  })
+
+  /** What the render blends Stamps between: each stop's position and resampled height table. */
+  const blendStops = computed(() => {
+    const cache = new Map<AnchorPoint[], number[]>()
+    const tables = stops.value.map((stop) => {
+      let table = cache.get(stop.anchors)
+      if (!table) {
+        table = sampleMotifHeights(stop.anchors)
+        cache.set(stop.anchors, table)
       }
-    },
-  )
+      return table
+    })
+    return { fractions: stops.value.map((stop) => stop.fraction), tables }
+  })
+
+  /** An inherited Motif as editable anchors: one at every x where either surrounding own Motif
+   *  has one, at the height of the blend there. Ids are negative so they can't clash with
+   *  anchors the user adds, and stay the same when the blend becomes an own Motif. */
+  function inheritedAnchors(id: number): AnchorPoint[] {
+    const slot = spineSlots().find((s) => s.id === id)
+    const { fractions, tables } = blendStops.value
+    if (!slot || tables.length < 2) return topAnchors
+
+    let i = 0
+    while (i < tables.length - 2 && fractions[i + 1] < slot.position) i++
+    const blended = heightsAt(slot.position, fractions, tables, ease())
+    const xs = [...stops.value[i].anchors, ...stops.value[i + 1].anchors]
+      .map((a) => a.x)
+      .sort((a, b) => a - b)
+      .filter((x, k, all) => k === 0 || x - all[k - 1] > 1e-6)
+    return xs.map((x, k) => ({
+      id: -(k + 1),
+      x,
+      y: heightAtX(blended, x),
+      isEdge: x <= 0 || x >= MOTIF_BOARD_WIDTH,
+    }))
+  }
 
   function motifOf(id: number | undefined): AnchorPoint[] {
-    return (id !== undefined && id !== topId.value && ownAnchors.get(id)) || defaultAnchors
+    if (id === undefined || id === topId.value) return topAnchors
+    return ownAnchors.get(id) ?? inheritedAnchors(id)
   }
 
   function hasOwnMotif(id: number): boolean {
+    return id === topId.value || ownAnchors.has(id)
+  }
+
+  /** Only anchors with an Motif they earned by editing can go back to inheriting. */
+  function canReset(id: number): boolean {
     return id !== topId.value && ownAnchors.has(id)
   }
 
   const anchors = computed(() => motifOf(selectedId.value))
   const pathD = computed(() => toPathOf(anchors.value))
-  /** Every Spine anchor's Motif, in Spine order - what the render blends Stamps from. */
-  const motifs = computed(() => spineAnchorIds().map((id) => motifOf(id)))
 
-  /** The list edits go to: the Default Motif for the top anchor, otherwise the selected
-   *  anchor's own Motif, created as a copy of the Default Motif on first edit. */
+  /** The list edits go to: the top Motif for the top anchor, otherwise the selected anchor's
+   *  own Motif, created from its inherited Motif on first edit. */
   function writableAnchors(): AnchorPoint[] {
     const id = selectedId.value
-    if (isTopSelected.value || id === undefined) return defaultAnchors
-    if (!ownAnchors.has(id)) ownAnchors.set(id, clone(defaultAnchors))
+    if (isTopSelected.value || id === undefined) return topAnchors
+    if (!ownAnchors.has(id)) ownAnchors.set(id, clone(inheritedAnchors(id)))
     return ownAnchors.get(id)!
   }
 
@@ -96,32 +155,34 @@ export function useMotif(spineAnchorIds: () => number[]) {
     requestedId.value = id
   }
 
-  /** Copies another Spine anchor's Motif into the selected one, as an independent copy. */
+  /** Copies another Spine anchor's Motif into the selected one, as an independent own Motif. */
   function copyFrom(sourceId: number) {
     const id = selectedId.value
     if (id === undefined || sourceId === id) return
     const copy = clone(motifOf(sourceId))
-    if (isTopSelected.value) defaultAnchors.splice(0, defaultAnchors.length, ...copy)
+    if (isTopSelected.value) topAnchors.splice(0, topAnchors.length, ...copy)
     else ownAnchors.set(id, copy)
   }
 
-  /** Drops the selected anchor's own Motif so it follows the Default Motif again. */
-  function resetToDefault() {
-    if (selectedId.value !== undefined) ownAnchors.delete(selectedId.value)
+  /** Drops the selected anchor's own Motif so it inherits from its neighbors again. */
+  function resetToInherited() {
+    const id = selectedId.value
+    if (id !== undefined && canReset(id)) ownAnchors.delete(id)
   }
 
   return {
     anchors,
     pathD,
-    motifs,
+    blendStops,
     selectedId,
     hasOwnMotif,
+    canReset,
     addAnchor,
     moveAnchor,
     removeAnchor,
     select,
     copyFrom,
-    resetToDefault,
+    resetToInherited,
   }
 }
 

@@ -1,13 +1,7 @@
 <script setup lang="ts">
 import { MOTIF_BOARD_HEIGHT } from '../composables/useMotif'
+import type { TrackSlot } from '../types/domain'
 import AnchorPoint from './AnchorPoint.vue'
-
-export interface TrackSlot {
-  id: number
-  isEdge: boolean
-  /** Fraction (0-1) of the way down the track. */
-  position: number
-}
 
 defineProps<{
   slots: TrackSlot[]

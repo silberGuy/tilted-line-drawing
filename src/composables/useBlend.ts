@@ -1,6 +1,6 @@
 import type { AnchorPoint } from '../types/domain'
 import { sampleSpline } from './useSpline'
-import { MOTIF_BOARD_WIDTH } from './useMotif'
+import { MOTIF_BOARD_WIDTH } from './motifBoard'
 
 /** Every Motif is resampled at this many uniform steps across its baseline (about 2px each). */
 export const MOTIF_SAMPLE_COUNT = 250
@@ -24,6 +24,13 @@ export function sampleMotifHeights(anchors: AnchorPoint[]): number[] {
     heights.push(a.y + (b.y - a.y) * f)
   }
   return heights
+}
+
+/** Height of a resampled Motif at board-local x, interpolating between its uniform samples. */
+export function heightAtX(heights: number[], x: number): number {
+  const position = Math.min(Math.max((x / MOTIF_BOARD_WIDTH) * MOTIF_SAMPLE_COUNT, 0), MOTIF_SAMPLE_COUNT)
+  const k = Math.min(Math.floor(position), MOTIF_SAMPLE_COUNT - 1)
+  return heights[k] + (heights[k + 1] - heights[k]) * (position - k)
 }
 
 /** Weighted average of two height tables: weight 0 is all `from`, weight 1 is all `to`. */

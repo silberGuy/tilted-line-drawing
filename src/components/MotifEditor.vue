@@ -1,26 +1,36 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { TrackSlot } from '../types/domain'
+import { smoothstep, type EasingFunction } from '../composables/useBlend'
 import { useMotif, MOTIF_BOARD_WIDTH, MOTIF_BOARD_HEIGHT, MOTIF_BASELINE_Y } from '../composables/useMotif'
 import AnchorPoint from './AnchorPoint.vue'
-import MotifTrack, { type TrackSlot } from './MotifTrack.vue'
+import MotifTrack from './MotifTrack.vue'
 
-const props = defineProps<{
-  slots: TrackSlot[]
-}>()
+const props = withDefaults(
+  defineProps<{
+    slots: TrackSlot[]
+    ease?: EasingFunction
+  }>(),
+  { ease: smoothstep },
+)
 
 const {
   anchors,
   pathD,
-  motifs,
+  blendStops,
   selectedId,
   hasOwnMotif,
+  canReset,
   addAnchor,
   moveAnchor,
   removeAnchor,
   select,
   copyFrom,
-  resetToDefault,
-} = useMotif(() => props.slots.map((slot) => slot.id))
+  resetToInherited,
+} = useMotif(
+  () => props.slots,
+  () => props.ease,
+)
 
 const ownIds = computed(() => props.slots.filter((slot) => hasOwnMotif(slot.id)).map((slot) => slot.id))
 
@@ -30,7 +40,7 @@ function onBackgroundClick(event: MouseEvent) {
   addAnchor(event.clientX - rect.left, event.clientY - rect.top)
 }
 
-defineExpose({ motifs })
+defineExpose({ blendStops })
 </script>
 
 <template>
@@ -40,8 +50,8 @@ defineExpose({ motifs })
       Click the board to add a point, drag a point up/down, shift-click to remove it. Click a dot on the
       track to edit that spot's Motif (option-click one to copy its Motif into the selected one).
     </p>
-    <button type="button" :disabled="selectedId === undefined || !hasOwnMotif(selectedId)" @click="resetToDefault">
-      Reset to default
+    <button type="button" :disabled="selectedId === undefined || !canReset(selectedId)" @click="resetToInherited">
+      Reset (inherit from neighbors)
     </button>
     <div class="editor-row">
     <svg

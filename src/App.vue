@@ -5,6 +5,7 @@ import SpineEditor from './components/SpineEditor.vue'
 import RenderCanvas from './components/RenderCanvas.vue'
 import GradientEditor from './components/GradientEditor.vue'
 import { useStamps } from './composables/useStamps'
+import { smoothstep, type EasingFunction } from './composables/useBlend'
 import { MOTIF_BOARD_WIDTH, MOTIF_BASELINE_Y } from './composables/useMotif'
 import { DEFAULT_STAMP_SPACING } from './composables/useSpine'
 
@@ -12,6 +13,9 @@ const motifEditorRef = ref<InstanceType<typeof MotifEditor> | null>(null)
 const spineEditorRef = ref<InstanceType<typeof SpineEditor> | null>(null)
 const gradientEditorRef = ref<InstanceType<typeof GradientEditor> | null>(null)
 const renderCanvasRef = ref<InstanceType<typeof RenderCanvas> | null>(null)
+
+// Shapes how a Stamp morphs between two own Motifs; also used for inherited Motifs.
+const ease: EasingFunction = smoothstep
 
 const stampSpacing = ref(DEFAULT_STAMP_SPACING)
 const stampWidth = ref(0.5)
@@ -21,10 +25,8 @@ const { stamps } = useStamps(
   () => spineEditorRef.value?.stampSamples ?? [],
   () => ({ x: MOTIF_BOARD_WIDTH / 2, y: MOTIF_BASELINE_Y }),
   (t) => gradientEditorRef.value?.colorAt(t) ?? '#000000',
-  () => ({
-    anchorFractions: spineSlots.value.map((slot) => slot.position),
-    motifs: motifEditorRef.value?.motifs ?? [],
-  }),
+  () => motifEditorRef.value?.blendStops ?? { fractions: [], tables: [] },
+  () => ease,
 )
 
 const spineSlots = computed(() => {
@@ -41,7 +43,7 @@ const spineSlots = computed(() => {
 <template>
   <main class="app">
     <div class="motif-area">
-      <MotifEditor ref="motifEditorRef" :slots="spineSlots" />
+      <MotifEditor ref="motifEditorRef" :slots="spineSlots" :ease="ease" />
     </div>
     <div class="spine-area">
       <SpineEditor ref="spineEditorRef" :stamp-spacing="stampSpacing" />
